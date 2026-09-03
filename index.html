@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUOS Code — AI-Powered IDE (QB-000)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <!-- Monaco Editor Loader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Top Titlebar -->
+        <header class="titlebar">
+            <div class="titlebar-left">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <span class="logo-text">QUOS <span class="badge">Code</span></span>
+                </div>
+                <div class="menu-bar">
+                    <span class="menu-item dropdown-toggle" onclick="toggleMenu('file')">File</span>
+                    <span class="menu-item dropdown-toggle" onclick="toggleMenu('edit')">Edit</span>
+                    <span class="menu-item dropdown-toggle" onclick="toggleMenu('selection')">Selection</span>
+                    <span class="menu-item dropdown-toggle" onclick="toggleMenu('view')">View</span>
+                    <span class="menu-item dropdown-toggle" onclick="toggleMenu('help')">Help</span>
+                </div>
+            </div>
+            <div class="titlebar-center">
+                <div class="project-title" id="projectTitle">quos-ai-project — index.js</div>
+            </div>
+            <div class="titlebar-right">
+                <button class="action-btn-glow" onclick="triggerAIChatShortcut()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> QB-000 AI
+                </button>
+                <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                </button>
+                <div class="window-controls">
+                    <span class="control minimize"></span>
+                    <span class="control maximize"></span>
+                    <span class="control close"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="workspace">
+            <!-- Activity Bar (Leftmost icons) -->
+            <aside class="activity-bar">
+                <div class="activity-icons top">
+                    <button class="activity-icon active" onclick="switchSidebarTab('files')" title="Explorer (Ctrl+Shift+E)">
+                        <i class="fa-regular fa-file-lines"></i>
+                    </button>
+                    <button class="activity-icon" onclick="switchSidebarTab('search')" title="Search (Ctrl+Shift+F)">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                    <button class="activity-icon" onclick="switchSidebarTab('git')" title="Source Control">
+                        <i class="fa-code-branch fa-solid"></i>
+                    </button>
+                    <button class="activity-icon" onclick="switchSidebarTab('ai-presets')" title="QB-000 AI Prompts">
+                        <i class="fa-solid fa-brain"></i>
+                    </button>
+                </div>
+                <div class="activity-icons bottom">
+                    <button class="activity-icon" onclick="openSettings()" title="Settings">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Sidebar (File Explorer / Search) -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <span class="sidebar-title" id="sidebarTitle">Explorer</span>
+                    <div class="sidebar-actions">
+                        <button onclick="createNewFilePrompt()" title="New File"><i class="fa-solid fa-file-circle-plus"></i></button>
+                        <button onclick="createNewFolderPrompt()" title="New Folder"><i class="fa-solid fa-folder-plus"></i></button>
+                        <button onclick="collapseAllFiles()" title="Collapse All"><i class="fa-solid fa-angles-up"></i></button>
+                    </div>
+                </div>
+                <div class="sidebar-content" id="sidebarContent">
+                    <!-- File tree populated by JS -->
+                </div>
+            </aside>
+
+            <!-- Editor & Terminal Area -->
+            <main class="main-editor-area">
+                <!-- Tab bar for open files -->
+                <div class="editor-tabs" id="editorTabs">
+                    <!-- Tabs rendered via JS -->
+                </div>
+
+                <!-- Breadcrumbs -->
+                <div class="breadcrumbs" id="breadcrumbs">
+                    <span>quos-ai-project</span> <i class="fa-solid fa-chevron-right"></i> <span id="currentBreadcrumbFile">index.js</span>
+                </div>
+
+                <!-- Monaco Editor Container -->
+                <div class="editor-wrapper">
+                    <div id="monaco-container"></div>
+                </div>
+
+                <!-- Inline AI Prompt Bar (Cursor-like Cmd+K) -->
+                <div class="inline-ai-bar hidden" id="inlineAiBar">
+                    <div class="inline-ai-header">
+                        <span><i class="fa-solid fa-bolt"></i> QB-000 Inline Edit</span>
+                        <span class="close-inline" onclick="closeInlineAi()"><i class="fa-solid fa-xmark"></i></span>
+                    </div>
+                    <div class="inline-ai-input-wrap">
+                        <input type="text" id="inlineAiInput" placeholder="Ask QB-000 to edit, fix, or generate code (e.g., 'add error handling')..." onkeydown="handleInlineKey(event)">
+                        <button onclick="submitInlineAi()"><i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Integrated Terminal / Output Panel -->
+                <div class="terminal-panel" id="terminalPanel">
+                    <div class="terminal-header">
+                        <div class="terminal-tabs">
+                            <span class="term-tab active" onclick="switchTerminalTab('output')">Output / Run</span>
+                            <span class="term-tab" onclick="switchTerminalTab('terminal')">Terminal</span>
+                            <span class="term-tab" onclick="switchTerminalTab('problems')">Problems <span class="badge-count">0</span></span>
+                        </div>
+                        <div class="terminal-actions">
+                            <button onclick="runCurrentCode()" class="term-run-btn" title="Run Code"><i class="fa-solid fa-play"></i> Run</button>
+                            <button onclick="clearTerminal()"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="toggleTerminal()"><i class="fa-solid fa-chevron-down" id="termToggleIcon"></i></button>
+                        </div>
+                    </div>
+                    <div class="terminal-body" id="terminalBody">
+                        <div class="term-line output-welcome"><i class="fa-solid fa-circle-info"></i> QUOS Code Integrated Terminal v1.0.0 (Node.js runtime simulation)</div>
+                        <div class="term-line output-welcome">Type code and click 'Run' to execute JavaScript in sandboxed runtime.</div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- AI Chat Panel (Right Sidebar - Cursor style) -->
+            <aside class="ai-chat-panel" id="aiChatPanel">
+                <div class="ai-panel-header">
+                    <div class="ai-header-title">
+                        <div class="ai-avatar"><i class="fa-solid fa-brain"></i></div>
+                        <div>
+                            <h4>QB-000 AI</h4>
+                            <span class="ai-status">Online • GPT-4o / Gemini Engine</span>
+                        </div>
+                    </div>
+                    <div class="ai-panel-controls">
+                        <button onclick="clearChatHistory()" title="Clear Chat"><i class="fa-solid fa-rotate-right"></i></button>
+                        <button onclick="toggleAiChatPanel()" title="Close Panel"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="ai-quick-actions">
+                    <button onclick="quickAiAction('explain')"><i class="fa-solid fa-book-open"></i> Explain</button>
+                    <button onclick="quickAiAction('refactor')"><i class="fa-solid fa-wand-magic-sparkles"></i> Refactor</button>
+                    <button onclick="quickAiAction('debug')"><i class="fa-solid fa-bug"></i> Debug</button>
+                    <button onclick="quickAiAction('tests')"><i class="fa-solid fa-vial"></i> Add Tests</button>
+                </div>
+
+                <!-- Chat Messages Stream -->
+                <div class="ai-messages" id="aiMessages">
+                    <div class="ai-msg assistant">
+                        <div class="msg-avatar">QB</div>
+                        <div class="msg-bubble">
+                            <p>Hello! I am <strong>QB-000</strong>, your AI Assistant inside QUOS Code. How can I help you write, debug, or refactor your project today?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input Box -->
+                <div class="ai-input-container">
+                    <div class="ai-input-wrapper">
+                        <textarea id="aiChatInput" placeholder="Ask QB-000 anything about your code... (Ctrl+L)" rows="2" onkeydown="handleChatKey(event)"></textarea>
+                        <div class="ai-input-footer">
+                            <div class="ai-context-indicator">
+                                <i class="fa-solid fa-paperclip"></i> <span id="activeFileContext">index.js</span>
+                            </div>
+                            <button class="ai-send-btn" onclick="sendAiMessage()">
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Status Bar -->
+        <footer class="statusbar">
+            <div class="statusbar-left">
+                <span class="status-item" onclick="toggleRemoteStatus()"><i class="fa-solid fa-code-branch"></i> main*</span>
+                <span class="status-item"><i class="fa-solid fa-arrows-rotate"></i> 0 errors, 0 warnings</span>
+                <span class="status-item ai-live-status"><i class="fa-solid fa-circle text-success"></i> QB-000 Active</span>
+            </div>
+            <div class="statusbar-right">
+                <span class="status-item" id="cursorPosition">Ln 1, Col 1</span>
+                <span class="status-item">Spaces: 2</span>
+                <span class="status-item" id="fileEncoding">UTF-8</span>
+                <span class="status-item" id="fileLanguage">JavaScript</span>
+                <span class="status-item"><i class="fa-solid fa-bell"></i></span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
